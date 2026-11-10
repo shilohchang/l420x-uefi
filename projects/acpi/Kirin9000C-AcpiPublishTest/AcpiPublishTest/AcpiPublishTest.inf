@@ -1,0 +1,26 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = AcpiPublishTest
+  FILE_GUID                      = A3D7C9B4-1B68-45C0-A5F1-71F20B0A9E41
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = UefiMain
+
+[Sources]
+  AcpiPublishTest.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  BaseLib
+  BaseMemoryLib
+
+[Guids]
+  gEfiAcpi20TableGuid
+
+[Protocols]
+  gEfiAcpiTableProtocolGuid

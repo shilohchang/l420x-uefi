@@ -1,0 +1,23 @@
+[Defines]
+  INF_VERSION = 0x0001001B
+  BASE_NAME = KirinAcpiSessionLoader
+  FILE_GUID = DA8F8F2A-CC8E-47AF-BA22-7B7F3B8DE1A4
+  MODULE_TYPE = UEFI_APPLICATION
+  VERSION_STRING = 0.3
+  ENTRY_POINT = UefiMain
+
+[Sources]
+  SessionLoader.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  BaseMemoryLib
+  BaseLib
+
+[Protocols]
+  gEfiAcpiTableProtocolGuid

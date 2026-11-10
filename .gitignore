@@ -1,0 +1,119 @@
+# =========================
+# EDK2 upstream source
+# =========================
+/edk2/
+
+# =========================
+# EDK2 build environment
+# =========================
+**/Build/
+**/Conf/
+**/BaseTools/Source/C/bin/
+**/BaseTools/Source/C/obj/
+**/BaseTools/Source/Python/**/__pycache__/
+
+# =========================
+# Compilers and linkers
+# =========================
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.idb
+*.pch
+*.d
+*.dep
+*.lst
+*.map
+*.debug
+*.elf
+*.axf
+*.fd
+*.fv
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+*.egg-info/
+
+# =========================
+# Build systems
+# =========================
+**/build/
+**/dist/
+**/out/
+**/output/
+**/target/
+**/cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+compile_commands.json
+.ninja_deps
+.ninja_log
+
+# =========================
+# Logs, temporary files
+# =========================
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+*.old
+*~
+*.cache
+*.lock
+
+# =========================
+# Archives
+# =========================
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+*.tar.xz
+
+# =========================
+# Windows and editors
+# =========================
+*:Zone.Identifier
+Zone.Identifier
+Thumbs.db
+Desktop.ini
+.DS_Store
+.vscode/
+.idea/
+
+# =========================
+# Local files and secrets
+# =========================
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.pfx
+*.p12
+*.secret
+*.token
+
+# =========================
+# Diagnostic binaries
+# =========================
+# EFI/ACPI files are not ignored globally.
+# Review them before committing.

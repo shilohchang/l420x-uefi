@@ -1,0 +1,22 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = GicProbeV2
+  FILE_GUID                      = 8c10c7da-33f2-4f91-b160-e41edca64be0
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 2.0
+  ENTRY_POINT                    = UefiMain
+
+[Sources]
+  GicProbeV2.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[Protocols]
+  gEfiCpuIo2ProtocolGuid
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  MemoryAllocationLib
