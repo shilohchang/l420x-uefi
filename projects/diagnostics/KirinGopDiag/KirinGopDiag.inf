@@ -1,0 +1,24 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = KirinGopDiag
+  FILE_GUID                      = 40a585ae-781b-41ba-9e9e-501c688f7c0b
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 2.0
+  ENTRY_POINT                    = UefiMain
+
+[Sources]
+  KirinGopDiag.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  MemoryAllocationLib
+
+[Protocols]
+  gEfiGraphicsOutputProtocolGuid
+  gEfiDevicePathProtocolGuid
+  gEfiDevicePathToTextProtocolGuid
