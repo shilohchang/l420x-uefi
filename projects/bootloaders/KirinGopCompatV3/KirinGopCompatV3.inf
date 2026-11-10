@@ -1,0 +1,21 @@
+[Defines]
+  INF_VERSION = 0x00010017
+  BASE_NAME = KirinGopCompatV3
+  FILE_GUID = 971cafdd-6e68-4e50-9826-c737d565241d
+  MODULE_TYPE = UEFI_DRIVER
+  VERSION_STRING = 0.3
+  ENTRY_POINT = KirinEntry
+[Sources]
+  KirinGopCompatV3.c
+[Packages]
+  MdePkg/MdePkg.dec
+[LibraryClasses]
+  UefiDriverEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  MemoryAllocationLib
+  BaseMemoryLib
+[Protocols]
+  gEfiGraphicsOutputProtocolGuid
+  gEfiDevicePathProtocolGuid
+  gEfiLoadedImageProtocolGuid

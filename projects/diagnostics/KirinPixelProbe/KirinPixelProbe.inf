@@ -1,0 +1,19 @@
+[Defines]
+  INF_VERSION = 0x00010017
+  BASE_NAME = KirinPixelProbe
+  FILE_GUID = cb47ad4a-447c-4545-bbcb-54432133c0fe
+  MODULE_TYPE = UEFI_APPLICATION
+  VERSION_STRING = 1.0
+  ENTRY_POINT = UefiMain
+[Sources]
+  KirinPixelProbe.c
+[Packages]
+  MdePkg/MdePkg.dec
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  MemoryAllocationLib
+[Protocols]
+  gEfiGraphicsOutputProtocolGuid
+  gEfiDevicePathProtocolGuid

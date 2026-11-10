@@ -1,0 +1,21 @@
+[Defines]
+  INF_VERSION = 0x0001001B
+  BASE_NAME = KirinGopV51Safe
+  FILE_GUID = 45ad9b22-88fe-4fbe-b3a0-bab556c37221
+  MODULE_TYPE = UEFI_DRIVER
+  VERSION_STRING = 0.5.1
+  ENTRY_POINT = KirinEntry
+[Sources]
+  KirinGopV51Safe.c
+[Packages]
+  MdePkg/MdePkg.dec
+[LibraryClasses]
+  UefiDriverEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  BaseMemoryLib
+  MemoryAllocationLib
+[Protocols]
+  gEfiGraphicsOutputProtocolGuid
+  gEfiDevicePathProtocolGuid
+  gEfiLoadedImageProtocolGuid

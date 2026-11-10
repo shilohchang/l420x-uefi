@@ -1,0 +1,35 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = KirinBootV6
+  FILE_GUID                      = A3A11666-31CD-4DAE-A2B5-A11977B5B906
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 6.0
+  ENTRY_POINT                    = UefiMain
+
+[Sources]
+  KirinBootV6.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  UefiRuntimeServicesTableLib
+  MemoryAllocationLib
+  BaseLib
+  BaseMemoryLib
+  DevicePathLib
+  PrintLib
+
+[Protocols]
+  gEfiLoadedImageProtocolGuid
+  gEfiSimpleFileSystemProtocolGuid
+  gEfiGraphicsOutputProtocolGuid
+
+[Guids]
+  gEfiAcpi20TableGuid
+  gEfiAcpi10TableGuid
+  gEfiFileInfoGuid

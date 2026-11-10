@@ -1,0 +1,21 @@
+[Defines]
+  INF_VERSION = 0x0001001B
+  BASE_NAME = KirinGopV4Dual
+  FILE_GUID = e692bd77-c36a-440e-b7f7-b039f1f6b0af
+  MODULE_TYPE = UEFI_DRIVER
+  VERSION_STRING = 0.4
+  ENTRY_POINT = KirinEntry
+[Sources]
+  KirinGopV4Dual.c
+[Packages]
+  MdePkg/MdePkg.dec
+[LibraryClasses]
+  UefiDriverEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  BaseMemoryLib
+  MemoryAllocationLib
+[Protocols]
+  gEfiGraphicsOutputProtocolGuid
+  gEfiDevicePathProtocolGuid
+  gEfiLoadedImageProtocolGuid

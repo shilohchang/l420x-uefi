@@ -1,0 +1,21 @@
+[Defines]
+  INF_VERSION = 0x00010017
+  BASE_NAME = KirinGopCompatDxe
+  FILE_GUID = 5c0290f4-5e54-463e-8fa3-f133ab09892c
+  MODULE_TYPE = UEFI_DRIVER
+  VERSION_STRING = 0.2
+  ENTRY_POINT = KirinGopCompatEntry
+[Sources]
+  KirinGopCompatDxe.c
+[Packages]
+  MdePkg/MdePkg.dec
+[LibraryClasses]
+  UefiDriverEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  MemoryAllocationLib
+  BaseMemoryLib
+[Protocols]
+  gEfiGraphicsOutputProtocolGuid
+  gEfiDevicePathProtocolGuid
+  gEfiLoadedImageProtocolGuid

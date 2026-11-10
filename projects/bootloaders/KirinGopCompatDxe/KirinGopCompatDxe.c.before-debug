@@ -1,0 +1,237 @@
+/** @file
+  L420x / Kirin9000C experimental GOP BGRA metadata adapter V2.
+
+  This is NOT a general RGB->BGRA converter. It is valid only when the
+  underlying physical framebuffer already contains B,G,R,X bytes.
+  Load manually from the UEFI Shell on a recoverable test boot.
+**/
+#include <Uefi.h>
+#include <Protocol/GraphicsOutput.h>
+#include <Protocol/DevicePath.h>
+#include <Protocol/LoadedImage.h>
+#include <Library/UefiLib.h>
+#include <Library/UefiBootServicesTableLib.h>
+#include <Library/MemoryAllocationLib.h>
+#include <Library/BaseMemoryLib.h>
+
+#define KIRIN_W 2880U
+#define KIRIN_H 1920U
+#define KIRIN_BPP 4U
+
+typedef struct {
+  EFI_HANDLE Handle;
+  EFI_GRAPHICS_OUTPUT_PROTOCOL *Original;
+  EFI_GRAPHICS_OUTPUT_PROTOCOL Proxy;
+  EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE ProxyMode;
+  EFI_GRAPHICS_OUTPUT_MODE_INFORMATION Info;
+  UINT32 OriginalMode;
+  EFI_PHYSICAL_ADDRESS OriginalBase;
+  UINTN OriginalSize;
+  BOOLEAN Installed;
+} GOP_CONTEXT;
+
+STATIC GOP_CONTEXT mCtx;
+
+STATIC BOOLEAN
+StillSameMode (VOID)
+{
+  EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE *M;
+  EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *I;
+  if (mCtx.Original == NULL || mCtx.Original->Mode == NULL) return FALSE;
+  M = mCtx.Original->Mode;
+  I = M->Info;
+  if (I == NULL || M->Mode != mCtx.OriginalMode ||
+      M->FrameBufferBase != mCtx.OriginalBase ||
+      M->FrameBufferSize != mCtx.OriginalSize ||
+      I->HorizontalResolution != KIRIN_W || I->VerticalResolution != KIRIN_H ||
+      I->PixelsPerScanLine != KIRIN_W ||
+      I->PixelFormat != PixelRedGreenBlueReserved8BitPerColor) return FALSE;
+  return TRUE;
+}
+
+STATIC EFI_STATUS EFIAPI
+CompatQueryMode (
+  IN EFI_GRAPHICS_OUTPUT_PROTOCOL *This,
+  IN UINT32 ModeNumber,
+  OUT UINTN *SizeOfInfo,
+  OUT EFI_GRAPHICS_OUTPUT_MODE_INFORMATION **Info
+  )
+{
+  EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *Copy;
+  if (This != &mCtx.Proxy || SizeOfInfo == NULL || Info == NULL) return EFI_INVALID_PARAMETER;
+  *Info = NULL;
+  *SizeOfInfo = 0;
+  if (ModeNumber != 0) return EFI_INVALID_PARAMETER;
+  if (!StillSameMode()) return EFI_DEVICE_ERROR;
+  Copy = AllocateCopyPool(sizeof(mCtx.Info), &mCtx.Info);
+  if (Copy == NULL) return EFI_OUT_OF_RESOURCES;
+  *Info = Copy;
+  *SizeOfInfo = sizeof(mCtx.Info);
+  return EFI_SUCCESS;
+}
+
+STATIC EFI_STATUS EFIAPI
+CompatSetMode (IN EFI_GRAPHICS_OUTPUT_PROTOCOL *This, IN UINT32 ModeNumber)
+{
+  if (This != &mCtx.Proxy) return EFI_INVALID_PARAMETER;
+  if (ModeNumber != 0) return EFI_UNSUPPORTED;
+  // The sole advertised mode IS already active. Do not ask firmware to
+  // reprogram display hardware / relocate the physical framebuffer.
+  // If an external caller changed it, refuse rather than misreport success.
+  return StillSameMode() ? EFI_SUCCESS : EFI_DEVICE_ERROR;
+}
+
+STATIC EFI_STATUS EFIAPI
+CompatBlt (
+  IN EFI_GRAPHICS_OUTPUT_PROTOCOL *This,
+  IN OUT EFI_GRAPHICS_OUTPUT_BLT_PIXEL *BltBuffer OPTIONAL,
+  IN EFI_GRAPHICS_OUTPUT_BLT_OPERATION BltOperation,
+  IN UINTN SourceX, IN UINTN SourceY,
+  IN UINTN DestinationX, IN UINTN DestinationY,
+  IN UINTN Width, IN UINTN Height,
+  IN UINTN Delta OPTIONAL
+  )
+{
+  if (This != &mCtx.Proxy) return EFI_INVALID_PARAMETER;
+  if (!StillSameMode()) return EFI_DEVICE_ERROR;
+  return mCtx.Original->Blt(mCtx.Original, BltBuffer, BltOperation,
+                             SourceX, SourceY, DestinationX, DestinationY,
+                             Width, Height, Delta);
+}
+
+// Uses GOP BLT to write a known pixel and reads the corresponding physical
+// bytes. Reads require valid CPU mapping. All written pixels are restored.
+STATIC BOOLEAN
+TestColor (EFI_GRAPHICS_OUTPUT_PROTOCOL *G, UINT8 Red, UINT8 Green, UINT8 Blue)
+{
+  EFI_STATUS Status;
+  EFI_STATUS RestoreStatus;
+  EFI_GRAPHICS_OUTPUT_BLT_PIXEL Saved;
+  EFI_GRAPHICS_OUTPUT_BLT_PIXEL Test;
+  volatile UINT8 *P;
+  BOOLEAN Match;
+  Status = G->Blt(G, &Saved, EfiBltVideoToBltBuffer, 0, 0, 0, 0, 1, 1, 0);
+  if (EFI_ERROR(Status)) return FALSE;
+  Test.Red = Red; Test.Green = Green; Test.Blue = Blue; Test.Reserved = 0;
+  Status = G->Blt(G, &Test, EfiBltBufferToVideo, 0, 0, 0, 0, 1, 1, 0);
+  if (EFI_ERROR(Status)) return FALSE;
+  P = (volatile UINT8 *)(UINTN)G->Mode->FrameBufferBase;
+  Match = (P[0] == Blue && P[1] == Green && P[2] == Red);
+  Print(L"  RGB(%u,%u,%u) raw=%02x %02x %02x %02x : %s\n",
+        Red, Green, Blue, P[0], P[1], P[2], P[3],
+        Match ? L"BGRA-match" : L"MISMATCH");
+  RestoreStatus = G->Blt(G, &Saved, EfiBltBufferToVideo, 0, 0, 0, 0, 1, 1, 0);
+  if (EFI_ERROR(RestoreStatus)) {
+    Print(L"  ERROR: restoring test pixel failed: %r\n", RestoreStatus);
+    return FALSE;
+  }
+  return Match;
+}
+
+STATIC BOOLEAN
+CompatibleCandidate (EFI_GRAPHICS_OUTPUT_PROTOCOL *G)
+{
+  EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE *M;
+  EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *I;
+  UINT64 Required;
+  if (G == NULL || G->Mode == NULL || G->Blt == NULL) return FALSE;
+  M = G->Mode;
+  I = M->Info;
+  if (I == NULL || M->FrameBufferBase == 0 ||
+      I->HorizontalResolution != KIRIN_W ||
+      I->VerticalResolution != KIRIN_H ||
+      I->PixelsPerScanLine != KIRIN_W ||
+      I->PixelFormat != PixelRedGreenBlueReserved8BitPerColor ||
+      M->Mode >= M->MaxMode) return FALSE;
+  Required = (UINT64)KIRIN_W * KIRIN_H * KIRIN_BPP;
+  if ((UINT64)M->FrameBufferSize < Required) return FALSE;
+  // Guard against address wrapping, not a proof of memory mapping validity.
+  if ((UINT64)M->FrameBufferBase > MAX_UINT64 - (UINT64)M->FrameBufferSize) return FALSE;
+  return TRUE;
+}
+
+STATIC EFI_STATUS EFIAPI
+CompatUnload (IN EFI_HANDLE ImageHandle)
+{
+  EFI_STATUS Status;
+  if (!mCtx.Installed) return EFI_SUCCESS;
+  Status = gBS->ReinstallProtocolInterface(
+                   mCtx.Handle, &gEfiGraphicsOutputProtocolGuid,
+                   &mCtx.Proxy, mCtx.Original);
+  if (EFI_ERROR(Status)) {
+    Print(L"KirinGopCompat V2: restore failed: %r\n", Status);
+    return Status;
+  }
+  mCtx.Installed = FALSE;
+  Print(L"KirinGopCompat V2: original GOP restored\n");
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS EFIAPI
+KirinGopCompatEntry (IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
+{
+  EFI_HANDLE *Handles = NULL;
+  EFI_LOADED_IMAGE_PROTOCOL *LoadedImage = NULL;
+  EFI_GRAPHICS_OUTPUT_PROTOCOL *G;
+  EFI_DEVICE_PATH_PROTOCOL *Dp;
+  EFI_STATUS Status;
+  UINTN Count = 0;
+  UINTN Index;
+
+  Print(L"KirinGopCompat V2: experimental metadata adapter, NOT conversion\n");
+  Status = gBS->HandleProtocol(ImageHandle, &gEfiLoadedImageProtocolGuid,
+                               (VOID **)&LoadedImage);
+  if (EFI_ERROR(Status) || LoadedImage == NULL) return EFI_UNSUPPORTED;
+  Status = gBS->LocateHandleBuffer(ByProtocol, &gEfiGraphicsOutputProtocolGuid,
+                                   NULL, &Count, &Handles);
+  if (EFI_ERROR(Status)) return Status;
+  for (Index = 0; Index < Count; ++Index) {
+    Dp = NULL;
+    if (EFI_ERROR(gBS->HandleProtocol(Handles[Index], &gEfiDevicePathProtocolGuid,
+                                     (VOID **)&Dp)) || Dp == NULL) continue;
+    G = NULL;
+    if (EFI_ERROR(gBS->HandleProtocol(Handles[Index], &gEfiGraphicsOutputProtocolGuid,
+                                     (VOID **)&G))) continue;
+    if (!CompatibleCandidate(G)) continue;
+    Print(L"Candidate handle=%p currentMode=%u fb=0x%lx size=0x%lx\n",
+          Handles[Index], G->Mode->Mode, G->Mode->FrameBufferBase,
+          (UINT64)G->Mode->FrameBufferSize);
+    if (!TestColor(G, 255, 0, 0) || !TestColor(G, 0, 255, 0) ||
+        !TestColor(G, 0, 0, 255)) {
+      Print(L"Refusing install: physical BGRA test failed\n");
+      continue;
+    }
+    ZeroMem(&mCtx, sizeof(mCtx));
+    mCtx.Handle = Handles[Index];
+    mCtx.Original = G;
+    mCtx.OriginalMode = G->Mode->Mode;
+    mCtx.OriginalBase = G->Mode->FrameBufferBase;
+    mCtx.OriginalSize = G->Mode->FrameBufferSize;
+    CopyMem(&mCtx.Info, G->Mode->Info, sizeof(mCtx.Info));
+    mCtx.Info.PixelFormat = PixelBlueGreenRedReserved8BitPerColor;
+    CopyMem(&mCtx.ProxyMode, G->Mode, sizeof(mCtx.ProxyMode));
+    mCtx.ProxyMode.MaxMode = 1;
+    mCtx.ProxyMode.Mode = 0;
+    mCtx.ProxyMode.Info = &mCtx.Info;
+    mCtx.ProxyMode.SizeOfInfo = sizeof(mCtx.Info);
+    mCtx.Proxy.QueryMode = CompatQueryMode;
+    mCtx.Proxy.SetMode = CompatSetMode;
+    mCtx.Proxy.Blt = CompatBlt;
+    mCtx.Proxy.Mode = &mCtx.ProxyMode;
+    if (!StillSameMode()) continue;
+    Status = gBS->ReinstallProtocolInterface(mCtx.Handle,
+                     &gEfiGraphicsOutputProtocolGuid, G, &mCtx.Proxy);
+    if (EFI_ERROR(Status)) {
+      Print(L"ReinstallProtocolInterface failed: %r\n", Status);
+      continue;
+    }
+    mCtx.Installed = TRUE;
+    LoadedImage->Unload = CompatUnload;
+    Print(L"Adapter active: 2880x1920 BGRA8, sole mode=0; original GOP retained\n");
+    FreePool(Handles);
+    return EFI_SUCCESS;
+  }
+  FreePool(Handles);
+  Print(L"No safely verified physical GOP; nothing installed\n");
+  return EFI_UNSUPPORTED;
+}
