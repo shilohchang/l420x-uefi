@@ -1,4 +1,4 @@
-/** KirinEbsGuard 1.1 - keep the L420X panel alive across ExitBootServices,
+/** KirinEbsGuard 1.2 - keep the L420X panel alive across ExitBootServices,
     and show on screen what happened.
 
   The stock firmware powers the display down from an "exit boot services"
@@ -26,6 +26,17 @@
 #include <Library/MemoryAllocationLib.h>
 
 #define SQUARE  160U
+
+// Which firmware "exit boot services" notifications are held back:
+//   TPL_CALLBACK : only those registered at TPL_CALLBACK; TPL_NOTIFY ones still run
+//                  (firmware RUNTIME drivers use TPL_NOTIFY to learn that boot
+//                  services are gone - they must get it, or the OS crashes later
+//                  inside a runtime service: seen as bugcheck 0x1E/C0000005
+//                  reading gBS+0x18 = RaiseTPL).
+//   TPL_NOTIFY   : everything (first experiment; breaks runtime services).
+#ifndef GUARD_TPL
+#define GUARD_TPL  TPL_CALLBACK
+#endif
 
 STATIC EFI_EXIT_BOOT_SERVICES  mOriginalExit;
 STATIC BOOLEAN                 mRaised;
@@ -72,7 +83,7 @@ GuardExitBootServices (
 
   Square (0, 0x00FFFF00);                 // yellow: wrapper entered
   if (!mRaised) {                         // loader may call twice; raise once, never restore
-    gBS->RaiseTPL (TPL_NOTIFY);
+    gBS->RaiseTPL (GUARD_TPL);
     mRaised = TRUE;
   }
   Status = mOriginalExit (ImageHandle, MapKey);
@@ -121,6 +132,6 @@ KirinEbsGuardEntry (
   gBS->CalculateCrc32 (gBS, gBS->Hdr.HeaderSize, &Crc);
   gBS->Hdr.CRC32 = Crc;
 
-  Print (L"KirinEbsGuard 1.1 installed. Marker framebuffer=%lx %ux%u\n", (UINT64)(UINTN)mFb, mW, mH);
+  Print (L"KirinEbsGuard 1.2 installed, hold level %u (8=CALLBACK 16=NOTIFY). Marker framebuffer=%lx %ux%u\n", (UINT32)GUARD_TPL, (UINT64)(UINTN)mFb, mW, mH);
   return EFI_SUCCESS;
 }

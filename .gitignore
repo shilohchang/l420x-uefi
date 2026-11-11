@@ -124,3 +124,7 @@ Desktop.ini
 *.efi
 *.aml
 *.dat
+
+# Local UEFI startup scripts
+/V*.nsh
+/EFI/

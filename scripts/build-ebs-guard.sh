@@ -5,7 +5,7 @@ EDK2="$ROOT/edk2"
 SRC="$ROOT/projects/bootloaders/KirinEbsGuard"
 [[ -f "$EDK2/edksetup.sh" && -f "$SRC/KirinEbsGuard.c" ]] || { echo 'Wrong workspace or missing source' >&2; exit 1; }
 mkdir -p "$EDK2/KirinEbsGuard" "$ROOT/artifacts/boot"
-cp "$SRC"/KirinEbsGuard.c "$SRC"/KirinEbsGuard.inf "$EDK2/KirinEbsGuard/"
+cp "$SRC"/KirinEbsGuard.c "$SRC"/KirinEbsGuardC.inf "$SRC"/KirinEbsGuardN.inf "$EDK2/KirinEbsGuard/"
 cat > "$EDK2/KirinEbsGuard.dsc" <<'DSC'
 [Defines]
   PLATFORM_NAME                  = KirinEbsGuard
@@ -36,13 +36,16 @@ cat > "$EDK2/KirinEbsGuard.dsc" <<'DSC'
   NULL|MdePkg/Library/CompilerIntrinsicsLib/CompilerIntrinsicsLib.inf
 
 [Components]
-  KirinEbsGuard/KirinEbsGuard.inf
+  KirinEbsGuard/KirinEbsGuardC.inf
+  KirinEbsGuard/KirinEbsGuardN.inf
 DSC
 cd "$EDK2"
 export GCC_AARCH64_PREFIX="${GCC_AARCH64_PREFIX:-aarch64-linux-gnu-}"
 set +u; source edksetup.sh; set -u
 build -a AARCH64 -t GCC -b RELEASE -p KirinEbsGuard.dsc
-OUT=$(find Build/KirinEbsGuard -type f -path '*/AARCH64/KirinEbsGuard.efi' | head -n1)
-test -n "$OUT" || { echo "KirinEbsGuard.efi missing" >&2; exit 1; }
-cp "$OUT" "$ROOT/artifacts/boot/KirinEbsGuard.efi"
-sha256sum "$ROOT/artifacts/boot/KirinEbsGuard.efi"
+for v in C N; do
+  OUT=$(find Build/KirinEbsGuard -type f -path '*/AARCH64/KirinEbsGuard'$v'.efi' | head -n1)
+  test -n "$OUT" || { echo "KirinEbsGuard$v.efi missing" >&2; exit 1; }
+  cp "$OUT" "$ROOT/artifacts/boot/KirinEbsGuard$v.efi"
+  sha256sum "$ROOT/artifacts/boot/KirinEbsGuard$v.efi"
+done

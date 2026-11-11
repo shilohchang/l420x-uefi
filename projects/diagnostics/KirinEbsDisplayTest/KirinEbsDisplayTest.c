@@ -82,6 +82,7 @@ UefiMain (
   UINT32                         Sec, Bar;
   EFI_LOADED_IMAGE_PROTOCOL      *Li = NULL;
   BOOLEAN                        Skip = FALSE;
+  EFI_TPL                        Level = TPL_NOTIFY;
 
   // Argument /skip : raise the task priority to TPL_NOTIFY before ExitBootServices.
   // Firmware drivers' "exit boot services" callbacks are then queued but never run,
@@ -90,6 +91,10 @@ UefiMain (
       Li != NULL && Li->LoadOptions != NULL && Li->LoadOptionsSize >= 6 * sizeof (CHAR16) &&
       ((CHAR16 *)Li->LoadOptions)[Li->LoadOptionsSize / sizeof (CHAR16) - 1] == 0) {
     Skip = (StrStr ((CHAR16 *)Li->LoadOptions, L"/skip") != NULL);
+    if (StrStr ((CHAR16 *)Li->LoadOptions, L"/callback") != NULL) {   // hold back TPL_CALLBACK-level notifications only
+      Skip  = TRUE;
+      Level = TPL_CALLBACK;
+    }
   }
 
   S = gBS->LocateHandleBuffer (ByProtocol, &gEfiGraphicsOutputProtocolGuid, NULL, &Count, &Handles);
@@ -117,7 +122,7 @@ UefiMain (
 
   Print (L"KirinEbsDisplayTest: fb=%lx %ux%u format=%u\n", (UINT64)(UINTN)mFb, mW, mH,
          (UINT32)Gop->Mode->Info->PixelFormat);
-  Print (L"Mode: %s\n", Skip ? L"/skip (firmware exit callbacks suppressed)" : L"normal");
+  Print (L"Mode: %s\n", !Skip ? L"normal" : (Level == TPL_CALLBACK ? L"/callback (only CALLBACK-level exit notifications held back)" : L"/skip (all exit notifications held back)"));
   Print (L"Phase 1: top half WHITE for 4 s. Then ExitBootServices.\n");
   Print (L"Phase 2: bottom half cycles RED/GREEN/BLUE for 20 s, then the machine resets.\n");
   gBS->Stall (3 * 1000 * 1000);
@@ -136,7 +141,7 @@ UefiMain (
 
   // No console output and no allocations from here to ExitBootServices.
   if (Skip) {
-    gBS->RaiseTPL (TPL_NOTIFY);        // deliberately never restored
+    gBS->RaiseTPL (Level);             // deliberately never restored
   }
   MapSize = MapCap;
   S = gBS->GetMemoryMap (&MapSize, Map, &Key, &DescSize, &DescVer);

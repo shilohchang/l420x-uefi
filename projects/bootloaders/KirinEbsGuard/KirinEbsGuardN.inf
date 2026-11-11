@@ -1,7 +1,7 @@
 [Defines]
   INF_VERSION                    = 0x0001001B
-  BASE_NAME                      = KirinEbsGuard
-  FILE_GUID                      = 71C5E0A3-9D42-4B1F-8E67-3A0F5C2D8B14
+  BASE_NAME                      = KirinEbsGuardN
+  FILE_GUID                      = 71C5E0A3-9D42-4B1F-8E67-3A0F5C2D8B15
   MODULE_TYPE                    = UEFI_DRIVER
   VERSION_STRING                 = 1.0
   ENTRY_POINT                    = KirinEbsGuardEntry
@@ -22,3 +22,6 @@
 [Protocols]
   gEfiGraphicsOutputProtocolGuid
   gEfiDevicePathProtocolGuid
+
+[BuildOptions]
+  GCC:*_*_*_CC_FLAGS = -DGUARD_TPL=TPL_NOTIFY

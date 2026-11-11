@@ -1,24 +1,16 @@
 # L420X UEFI
 
-Experimental UEFI firmware, ACPI tables, bootloaders
-and hardware diagnostics for the Kirin 9000C platform.
+UEFI for L420X, powered by Kirin 9000C.
 
-## Repository structure
+## Structure
 
-- `projects/acpi/` - ACPI table experiments
-- `projects/bootloaders/` - Boot and session loaders
-- `projects/diagnostics/` - GIC and hardware probes
-- `edk2-overlay/` - EDK2 modifications and custom sources
-- `scripts/` - Build and deployment scripts
-- `docs/` - Technical documentation
-- `artifacts/` - Selected release artifacts
+- `projects/` — Firmware components, ACPI tables, bootloaders, and diagnostics
+- `edk2-overlay/` — EDK2 modifications
+- `scripts/` — Build scripts
+- `docs/` — Technical documentation
+- `tests/` — Test utilities
+- `artifacts/` — Selected build artifacts
 
-## Status
+## Build
 
-Experimental research project. Firmware compatibility
-and operating system boot support are not guaranteed.
-
-## EDK2
-
-The upstream EDK2 working tree is excluded from Git.
-See `edk2-overlay/` for local modification records.
+Built with EDK2 for AArch64.
