@@ -1,0 +1,25 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = KirinGopPinA
+  FILE_GUID                      = 9B1C2E57-6A0F-4E3B-8C11-5D2A7F4E90A1
+  MODULE_TYPE                    = UEFI_DRIVER
+  VERSION_STRING                 = 7.0
+  ENTRY_POINT                    = KirinGopPinEntry
+
+[Sources]
+  KirinGopPinV7.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiDriverEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  BaseMemoryLib
+  MemoryAllocationLib
+
+[Protocols]
+  gEfiGraphicsOutputProtocolGuid
+  gEfiDevicePathProtocolGuid
+  gEfiCpuArchProtocolGuid
