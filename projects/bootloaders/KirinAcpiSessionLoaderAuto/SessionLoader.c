@@ -107,5 +107,6 @@ UefiMain (IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
     return Status;
   }
 
+  Print (L"Run Kirin9000C-EfiProbe.efi to confirm ACPI2 configuration, THEN REBOOT.\n");
   return EFI_SUCCESS;
 }

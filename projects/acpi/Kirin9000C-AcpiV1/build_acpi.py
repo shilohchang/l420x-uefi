@@ -32,7 +32,7 @@ def acpi_table(sig, revision, payload):
 
 def gicc(uid, mpidr):
     # ACPI 6.5 GICC: Type 0x0B, Length 82, see Acpi65.h.
-    b = bytearray(82)
+    b = bytearray(80)
     struct.pack_into('<BBH', b, 0, 0x0B, len(b), 0)
     struct.pack_into('<I', b, 4, uid)    # CPUInterfaceNumber: experimental index
     struct.pack_into('<I', b, 8, uid)    # ACPI Processor UID
@@ -63,7 +63,7 @@ def build_madt():
     for uid, affinity in enumerate(AFFINITIES):
         payload += gicc(uid, affinity)
     payload += gicd() + gicr()
-    return acpi_table(b'APIC', 6, payload)
+    return acpi_table(b'APIC', 5, payload)
 
 
 def build_gtdt():
@@ -74,7 +74,7 @@ def build_gtdt():
     struct.pack_into('<Q', p, 0, 0xffffffffffffffff)
     # Reserved at body offset 8 = 0.
     for body_offset, irq in ((12, 29), (20, 30), (28, 27), (36, 26)):
-        struct.pack_into('<II', p, body_offset, irq, 0)
+        struct.pack_into('<II', p, body_offset, irq, 2)
     struct.pack_into('<Q', p, 44, 0xffffffffffffffff)  # CntReadBase
     struct.pack_into('<I', p, 52, 0)  # PlatformTimerCount
     struct.pack_into('<I', p, 56, 0)  # PlatformTimerOffset

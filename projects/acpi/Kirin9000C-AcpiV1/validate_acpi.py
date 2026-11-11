@@ -23,8 +23,8 @@ def header(path, signature, revision):
 
 
 def madt_check():
-    b = header(ROOT/'MADT.dat', b'APIC', 6)
-    assert len(b) == 44 + 12 * 82 + 24 + 16, 'MADT unexpected length'
+    b = header(ROOT/'MADT.dat', b'APIC', 5)
+    assert len(b) == 44 + 12 * 80 + 24 + 16, 'MADT unexpected length'
     assert u32(b, 36) == 0 and u32(b, 40) == 0  # local APIC address and flags
     off = 44
     entries = []
@@ -36,7 +36,7 @@ def madt_check():
     assert len(entries) == 14
     assert [ty for ty,_ in entries] == [11]*12 + [12,14]
     for uid, (ty, e) in enumerate(entries[:12]):
-        assert len(e) == 82
+        assert len(e) == 80
         assert u32(e, 4) == uid and u32(e,8) == uid
         assert u32(e,12) & 1
         assert u32(e,56) == 25
@@ -55,7 +55,7 @@ def gtdt_check():
     assert u64(b,36) == 0xffffffffffffffff
     assert u32(b,44) == 0
     assert [(u32(b,x),u32(b,x+4)) for x in (48,56,64,72)] == [
-        (29,0),(30,0),(27,0),(26,0)
+        (29,2),(30,2),(27,2),(26,2)
     ]
     assert u64(b,80) == 0xffffffffffffffff
     assert u32(b,88) == 0 and u32(b,92) == 0

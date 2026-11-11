@@ -1,0 +1,28 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = KirinKdProbe
+  FILE_GUID                      = 5DE13CF1-711F-455A-B6A1-5889C87F7707
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 7.0
+  ENTRY_POINT                    = UefiMain
+
+[Sources]
+  KirinKdProbe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  BaseMemoryLib
+  MemoryAllocationLib
+
+[Guids]
+  gEfiAcpi20TableGuid
+  gEfiAcpi10TableGuid
+
+[Protocols]
+  gEfiSerialIoProtocolGuid
+  gEfiUsb2HcProtocolGuid

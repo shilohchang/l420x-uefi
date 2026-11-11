@@ -117,3 +117,10 @@ Desktop.ini
 # =========================
 # EFI/ACPI files are not ignored globally.
 # Review them before committing.
+
+# Build outputs: regenerate with scripts/, publish via GitHub Releases
+/edk2
+/artifacts/
+*.efi
+*.aml
+*.dat

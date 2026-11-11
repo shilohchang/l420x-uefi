@@ -1,0 +1,29 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = KirinGopDiagV3
+  FILE_GUID                      = 6C0B7B52-3F0E-4C0B-9E55-2B7C1D0A93E1
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 3.0
+  ENTRY_POINT                    = UefiMain
+
+[Sources]
+  KirinGopDiagV3.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  MemoryAllocationLib
+  BaseLib
+  BaseMemoryLib
+  DevicePathLib
+  PrintLib
+
+[Protocols]
+  gEfiLoadedImageProtocolGuid
+  gEfiSimpleFileSystemProtocolGuid
+  gEfiGraphicsOutputProtocolGuid
+  gEfiDevicePathProtocolGuid
