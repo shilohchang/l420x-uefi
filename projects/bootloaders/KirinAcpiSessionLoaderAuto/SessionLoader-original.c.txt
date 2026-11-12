@@ -66,9 +66,9 @@ UefiMain (IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
     }
   }
 
-  Print (L"Kirin9000C ACPI v3 - SESSION EXPERIMENT ONLY\n");
+
   Print (L"NO disk, NVRAM, BIOS or MMIO writes. DOES MODIFY EFI ACPI CONFIGURATION IN RAM.\n");
-  Print (L"DO NOT BOOT WINDOWS OR LINUX IN THIS SESSION. REBOOT AFTER TEST!\n\n");
+
 
   for (I = 0; I < TABLE_COUNT; ++I) {
     if (!ValidateTable (&mTables[I])) {
@@ -106,7 +106,7 @@ UefiMain (IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
     Print (L"REBOOT REQUIRED; do not boot OS in this session.\n");
     return Status;
   }
-  Print (L"All four tables reported success. This does NOT establish OS compatibility.\n");
+
   Print (L"Run Kirin9000C-EfiProbe.efi to confirm ACPI2 configuration, THEN REBOOT.\n");
   return EFI_SUCCESS;
 }

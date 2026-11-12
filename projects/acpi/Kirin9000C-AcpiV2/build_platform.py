@@ -28,6 +28,17 @@ for uid,aff in enumerate(AFF):
                 '            Name (_HID, "ACPI0007")',
                 f'            Name (_UID, {uid})',
                 '        }'])
+asl+=['        Device (USB0)', '        {',
+      '            Name (_HID, "PNP0D10")',
+      '            Name (_UID, Zero)',
+      '            Name (_CCA, Zero)',
+      '            Method (_STA) { Return (0x0F) }',
+      '            Name (_CRS, ResourceTemplate ()',
+      '            {',
+      '                Memory32Fixed (ReadWrite, 0xEFC00000, 0x00100000)',
+      '                Interrupt (ResourceConsumer, Level, ActiveHigh, Exclusive) { 172 }',
+      '            })',
+      '        }']
 asl+=['    }', '}']
 (BASE/'Kirin9000C-Processors.asl').write_text('\n'.join(asl)+'\n')
 manifest={

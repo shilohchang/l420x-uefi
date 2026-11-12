@@ -62,5 +62,17 @@ DefinitionBlock ("", "DSDT", 2, "KRNEXP", "KR9000C ", 0x00000002)
             Name (_HID, "ACPI0007")
             Name (_UID, 11)
         }
+        Device (USB0)
+        {
+            Name (_HID, "PNP0D10")
+            Name (_UID, Zero)
+            Name (_CCA, Zero)
+            Method (_STA) { Return (0x0F) }
+            Name (_CRS, ResourceTemplate ()
+            {
+                Memory32Fixed (ReadWrite, 0xEFC00000, 0x00100000)
+                Interrupt (ResourceConsumer, Level, ActiveHigh, Exclusive) { 172 }
+            })
+        }
     }
 }

@@ -128,3 +128,12 @@ Desktop.ini
 # Local UEFI startup scripts
 /V*.nsh
 /EFI/
+
+# Build outputs: regenerate with scripts/, publish via GitHub Releases
+/edk2
+/artifacts/
+*.efi
+*.aml
+*.dat
+*.orig
+*.exe

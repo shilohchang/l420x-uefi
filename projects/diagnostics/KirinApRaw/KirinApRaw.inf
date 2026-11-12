@@ -1,0 +1,25 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = KirinApRaw
+  FILE_GUID                      = A1F6C3D4-5E87-4B29-8D30-F4829EB6C7D5
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = UefiMain
+
+[Sources]
+  KirinApRaw.c
+  ApStub.S
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  PrintLib
+  BaseMemoryLib
+
+[Protocols]
+  gEfiLoadedImageProtocolGuid
+  gEfiSimpleFileSystemProtocolGuid

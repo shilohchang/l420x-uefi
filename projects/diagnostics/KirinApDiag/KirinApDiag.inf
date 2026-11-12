@@ -1,0 +1,25 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = KirinApDiag
+  FILE_GUID                      = 8C41D7E2-3A95-4B60-9F18-E2607CA4D593
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = UefiMain
+
+[Sources]
+  KirinApDiag.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  PrintLib
+  BaseMemoryLib
+
+[Protocols]
+  gEfiLoadedImageProtocolGuid
+  gEfiSimpleFileSystemProtocolGuid
+  gEfiMpServiceProtocolGuid

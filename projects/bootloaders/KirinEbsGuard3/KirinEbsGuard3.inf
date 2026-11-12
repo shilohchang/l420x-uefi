@@ -1,0 +1,28 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = KirinEbsGuard3
+  FILE_GUID                      = 4FA02B68-75E3-4D19-AC84-B62D1F9E3A57
+  MODULE_TYPE                    = UEFI_DRIVER
+  VERSION_STRING                 = 3.0
+  ENTRY_POINT                    = KirinEbsGuard3Entry
+
+[Sources]
+  KirinEbsGuard3.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiDriverEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  BaseLib
+  BaseMemoryLib
+  MemoryAllocationLib
+
+[Protocols]
+  gEfiGraphicsOutputProtocolGuid
+  gEfiDevicePathProtocolGuid
+
+[Guids]
+  gEfiEventExitBootServicesGuid

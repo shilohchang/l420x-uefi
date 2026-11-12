@@ -1,0 +1,24 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = KirinPsciDiag
+  FILE_GUID                      = 5A2C8E10-B7D4-4F39-8A61-C03E9D7F1B25
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = UefiMain
+
+[Sources]
+  KirinPsciDiag.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  PrintLib
+
+[Protocols]
+  gEfiLoadedImageProtocolGuid
+  gEfiSimpleFileSystemProtocolGuid
+  gEfiMpServiceProtocolGuid

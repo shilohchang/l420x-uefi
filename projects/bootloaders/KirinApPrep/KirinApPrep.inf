@@ -1,0 +1,25 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = KirinApPrep
+  FILE_GUID                      = C3B8E5F6-7A09-4D4B-AF52-B6A41AD8E9F7
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = UefiMain
+
+[Sources]
+  KirinApPrep.c
+  ApPrepStub.S
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  PrintLib
+  BaseMemoryLib
+
+[Protocols]
+  gEfiLoadedImageProtocolGuid
+  gEfiSimpleFileSystemProtocolGuid
