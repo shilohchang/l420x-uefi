@@ -85,5 +85,69 @@ DefinitionBlock ("", "DSDT", 2, "KRNEXP", "KR9000C ", 0x00000002)
                 Interrupt (ResourceConsumer, Level, ActiveHigh, Shared) { 610 }
             })
         }
+        Device (I2C7)
+        {
+            Name (_HID, "KRN0002")
+            Name (_UID, 0x7)
+            Method (_STA) { Return (0x0F) }
+            Name (_CRS, ResourceTemplate ()
+            {
+                Memory32Fixed (ReadWrite, 0xFF88F000, 0x00001000)
+                Interrupt (ResourceConsumer, Level, ActiveHigh, Exclusive) { 392 }
+            })
+        }
+        Device (I2C6)
+        {
+            Name (_HID, "KRN0002")
+            Name (_UID, 0x6)
+            Method (_STA) { Return (0x0F) }
+            Name (_CRS, ResourceTemplate ()
+            {
+                Memory32Fixed (ReadWrite, 0xFF88E000, 0x00001000)
+                Interrupt (ResourceConsumer, Level, ActiveHigh, Exclusive) { 391 }
+            })
+        }
+        Device (KBD0)
+        {
+            Name (_HID, "KRN0010")
+            Name (_CID, "PNP0C50")
+            Name (_UID, One)
+            Method (_STA) { Return (0x0F) }
+            Name (_CRS, ResourceTemplate ()
+            {
+                I2cSerialBus (0x003A, ControllerInitiated, 400000, AddressingMode7Bit, "\\_SB.I2C7", 0x00, ResourceConsumer, , )
+                GpioInt (Edge, ActiveLow, Exclusive, PullUp, 0x0000, "\\_SB.GPI7", 0x00, ResourceConsumer, , ) { 8 }
+            })
+            Method (_DSM, 4, Serialized)
+            {
+                If ((Arg0 == ToUUID ("3cdff6f7-4267-4555-ad05-b30a3d8938de")))
+                {
+                    If ((Arg2 == Zero)) { Return (Buffer (One) { 0x03 }) }
+                    If ((Arg2 == One)) { Return (0x0001) }
+                }
+                Return (Buffer (One) { 0x00 })
+            }
+        }
+        Device (TPD0)
+        {
+            Name (_HID, "KRN0011")
+            Name (_CID, "PNP0C50")
+            Name (_UID, One)
+            Method (_STA) { Return (0x0F) }
+            Name (_CRS, ResourceTemplate ()
+            {
+                I2cSerialBus (0x002C, ControllerInitiated, 100000, AddressingMode7Bit, "\\_SB.I2C6", 0x00, ResourceConsumer, , )
+                GpioInt (Level, ActiveLow, Exclusive, PullUp, 0x0000, "\\_SB.GPI7", 0x00, ResourceConsumer, , ) { 4 }
+            })
+            Method (_DSM, 4, Serialized)
+            {
+                If ((Arg0 == ToUUID ("3cdff6f7-4267-4555-ad05-b30a3d8938de")))
+                {
+                    If ((Arg2 == Zero)) { Return (Buffer (One) { 0x03 }) }
+                    If ((Arg2 == One)) { Return (0x0020) }
+                }
+                Return (Buffer (One) { 0x00 })
+            }
+        }
     }
 }

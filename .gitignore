@@ -137,3 +137,14 @@ Desktop.ini
 *.dat
 *.orig
 *.exe
+*.efi
+*.sys
+*.cat
+*.pdb
+*.obj
+*.wim
+*.exe
+*.aml
+*.dat
+*.zip
+artifacts/

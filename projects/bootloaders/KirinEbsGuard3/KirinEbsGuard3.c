@@ -36,6 +36,15 @@
     GREEN  : at least one boot-time handler was neutralised (WHITE = none found)
     MAGENTA: the EL2->EL1 routine was found and patched (GREY = not found)
     CYAN   : firmware returned SUCCESS (RED = error; loader normally retries)
+    BLUE   : I2C buses left ready for the OS (ORANGE = read-back mismatch)
+
+  Version 3.1 adds the I2C hand-off. The firmware gates the keyboard bus clock
+  and parks its two pins between its own transfers, so the OS would find a dead
+  bus. Once the firmware has finished ExitBootServices (nothing of it runs any
+  more) the wrapper switches the two I2C bus clocks on and puts the keyboard
+  bus pins (GPIO230/231) into their I2C function - exactly the state in which
+  KirinI2cXfer2 read the keyboard's HID descriptor. The Windows I2C driver
+  therefore never has to touch clock or pin registers.
 
   Load after KirinGopPinA, with `load -nc`. Cannot be unloaded; cold boot to undo.
 **/
@@ -92,7 +101,7 @@ Square (
   UINT64  Ctr;
   UINTN   Line, Addr, End;
 
-  if (mFb == NULL || mW < 5 * SQUARE || mH < 2 * SQUARE) {
+  if (mFb == NULL || mW < 6 * SQUARE || mH < 2 * SQUARE) {
     return;
   }
   X = mW - (Index + 1) * (SQUARE + 16);
@@ -196,6 +205,41 @@ STATIC CONST UINT32  mPattern[5] = {
 
 STATIC UINTN  mPatched;
 
+#define CRG_PEREN1     0xFFB85010ULL     // write-1-to-set clock enable
+#define CRG_PERCLKEN1  0xFFB85018ULL     // status
+#define I2C_CLOCKS     0xC0000000U       // bit 31 = keyboard bus (i2c7), bit 30 = touchpad bus (i2c6)
+
+STATIC CONST UINT64  mKbdPad[2] = { 0xFB229794ULL, 0xFB229798ULL };   // pad function, 4 = I2C
+STATIC CONST UINT64  mKbdCfg[2] = { 0xFB229F94ULL, 0xFB229F98ULL };   // electrical config, bit 0 = pull-up
+
+// Runs after ExitBootServices succeeded: plain register writes only.
+STATIC
+BOOLEAN
+PrepareI2c (
+  VOID
+  )
+{
+  UINTN    I;
+  UINT32   V;
+  BOOLEAN  Ok;
+
+  *(volatile UINT32 *)(UINTN)CRG_PEREN1 = I2C_CLOCKS;
+  for (I = 0; I < 2; I++) {
+    V = *(volatile UINT32 *)(UINTN)mKbdCfg[I];
+    if ((V & 3U) != 1U) {
+      *(volatile UINT32 *)(UINTN)mKbdCfg[I] = (V & ~3U) | 1U;
+    }
+    if (*(volatile UINT32 *)(UINTN)mKbdPad[I] != 4U) {
+      *(volatile UINT32 *)(UINTN)mKbdPad[I] = 4U;
+    }
+  }
+  Ok = (BOOLEAN)((*(volatile UINT32 *)(UINTN)CRG_PERCLKEN1 & I2C_CLOCKS) == I2C_CLOCKS);
+  for (I = 0; I < 2; I++) {
+    Ok = (BOOLEAN)(Ok && *(volatile UINT32 *)(UINTN)mKbdPad[I] == 4U);
+  }
+  return Ok;
+}
+
 /* Search the memory an OS loader can own for the routine and patch each copy.
    Patch = FALSE only counts. */
 STATIC
@@ -265,6 +309,9 @@ GuardExitBootServices (
   Square (2, mPatched != 0 ? 0x00FF00FF : 0x00606060);         // magenta / grey
   Status = mOriginalExit (ImageHandle, MapKey);
   Square (3, EFI_ERROR (Status) ? 0x00FF0000 : 0x0000FFFF);   // red / cyan
+  if (!EFI_ERROR (Status)) {
+    Square (4, PrepareI2c () ? 0x000000FF : 0x00FF8000);      // blue / orange
+  }
   return Status;
 }
 
@@ -325,6 +372,6 @@ KirinEbsGuard3Entry (
   gBS->CalculateCrc32 (gBS, gBS->Hdr.HeaderSize, &Crc);
   gBS->Hdr.CRC32 = Crc;
 
-  Print (L"KirinEbsGuard3 installed (with multi-processor fix). Marker framebuffer=%lx\n", (UINT64)(UINTN)mFb);
+  Print (L"KirinEbsGuard3 v3.1 installed (multi-processor fix + I2C hand-off). Marker framebuffer=%lx\n", (UINT64)(UINTN)mFb);
   return EFI_SUCCESS;
 }

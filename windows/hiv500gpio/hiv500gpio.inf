@@ -1,0 +1,54 @@
+;
+; hiv500gpio.inf - HiSilicon hiv500 GPIO controller (Kirin 9000C), GpioClx client
+;
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = System
+ClassGuid   = {4D36E97D-E325-11CE-BFC1-08002BE10318}
+Provider    = %ProviderName%
+DriverVer   = 11/13/2026,1.0.0.0
+CatalogFile = hiv500gpio.cat
+PnpLockdown = 1
+
+[SourceDisksNames]
+1 = %DiskName%
+
+[SourceDisksFiles]
+hiv500gpio.sys = 1
+
+[DestinationDirs]
+DefaultDestDir = 13
+
+[Manufacturer]
+%ProviderName% = Hiv500, NTARM64.10.0...16299
+
+[Hiv500.NTARM64.10.0...16299]
+%DeviceDesc% = Hiv500_Install, ACPI\KRN0001
+
+[Hiv500_Install.NT]
+CopyFiles = Hiv500_Files
+
+[Hiv500_Files]
+hiv500gpio.sys
+
+[Hiv500_Install.NT.Services]
+AddService = hiv500gpio, 0x00000002, Hiv500_Service
+
+[Hiv500_Service]
+DisplayName   = %DeviceDesc%
+ServiceType   = 1
+StartType     = 3
+ErrorControl  = 1
+ServiceBinary = %13%\hiv500gpio.sys
+Dependencies  = GPIOClx0101
+
+[Hiv500_Install.NT.Wdf]
+KmdfService = hiv500gpio, Hiv500_Wdf
+
+[Hiv500_Wdf]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+ProviderName = "L420X UEFI Project"
+DiskName     = "hiv500 GPIO driver disk"
+DeviceDesc   = "HiSilicon hiv500 GPIO Controller"

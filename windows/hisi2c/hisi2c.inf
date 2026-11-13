@@ -1,0 +1,54 @@
+;
+; hisi2c.inf - HiSilicon I2C master (Kirin 9000C), SpbCx controller driver
+;
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = System
+ClassGuid   = {4D36E97D-E325-11CE-BFC1-08002BE10318}
+Provider    = %ProviderName%
+DriverVer   = 11/13/2026,1.0.0.0
+CatalogFile = hisi2c.cat
+PnpLockdown = 1
+
+[SourceDisksNames]
+1 = %DiskName%
+
+[SourceDisksFiles]
+hisi2c.sys = 1
+
+[DestinationDirs]
+DefaultDestDir = 13
+
+[Manufacturer]
+%ProviderName% = HisI2c, NTARM64.10.0...16299
+
+[HisI2c.NTARM64.10.0...16299]
+%DeviceDesc% = HisI2c_Install, ACPI\KRN0002
+
+[HisI2c_Install.NT]
+CopyFiles = HisI2c_Files
+
+[HisI2c_Files]
+hisi2c.sys
+
+[HisI2c_Install.NT.Services]
+AddService = hisi2c, 0x00000002, HisI2c_Service
+
+[HisI2c_Service]
+DisplayName   = %DeviceDesc%
+ServiceType   = 1
+StartType     = 3
+ErrorControl  = 1
+ServiceBinary = %13%\hisi2c.sys
+Dependencies  = SpbCx
+
+[HisI2c_Install.NT.Wdf]
+KmdfService = hisi2c, HisI2c_Wdf
+
+[HisI2c_Wdf]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+ProviderName = "L420X UEFI Project"
+DiskName     = "HiSilicon I2C driver disk"
+DeviceDesc   = "HiSilicon I2C Controller (Kirin 9000C)"
