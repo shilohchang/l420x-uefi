@@ -14,3 +14,4 @@ UEFI for L420X, powered by Kirin 9000C.
 ## Build
 
 Built with EDK2 for AArch64.
+

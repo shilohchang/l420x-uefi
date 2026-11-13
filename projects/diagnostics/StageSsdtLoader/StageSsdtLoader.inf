@@ -1,0 +1,28 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = StageSsdtLoader
+  FILE_GUID                      = 1140ed2b-2e17-4fd9-b1cd-c2948cb43077
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 0.1
+  ENTRY_POINT                    = UefiMain
+
+[Sources]
+  StageSsdtLoader.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
+  UefiBootServicesTableLib
+  MemoryAllocationLib
+  BaseMemoryLib
+
+[Protocols]
+  gEfiLoadedImageProtocolGuid
+  gEfiSimpleFileSystemProtocolGuid
+  gEfiAcpiTableProtocolGuid
+
+[Guids]
+  gEfiFileInfoGuid
