@@ -74,5 +74,16 @@ DefinitionBlock ("", "DSDT", 2, "KRNEXP", "KR9000C ", 0x00000002)
                 Interrupt (ResourceConsumer, Level, ActiveHigh, Exclusive) { 172 }
             })
         }
+        Device (GPI7)
+        {
+            Name (_HID, "KRN0001")
+            Name (_UID, 0x7)
+            Method (_STA) { Return (0x0F) }
+            Name (_CRS, ResourceTemplate ()
+            {
+                Memory32Fixed (ReadWrite, 0xFB232000, 0x00001000)
+                Interrupt (ResourceConsumer, Level, ActiveHigh, Shared) { 610 }
+            })
+        }
     }
 }
