@@ -136,7 +136,7 @@ DefinitionBlock ("", "DSDT", 2, "KRNEXP", "KR9000C ", 0x00000002)
             Method (_STA) { Return (0x0F) }
             Name (_CRS, ResourceTemplate ()
             {
-                I2cSerialBus (0x002C, ControllerInitiated, 100000, AddressingMode7Bit, "\\_SB.I2C6", 0x00, ResourceConsumer, , )
+                I2cSerialBus (0x002C, ControllerInitiated, 400000, AddressingMode7Bit, "\\_SB.I2C6", 0x00, ResourceConsumer, , )
                 GpioInt (Level, ActiveLow, Exclusive, PullUp, 0x0000, "\\_SB.GPI7", 0x00, ResourceConsumer, , ) { 4 }
             })
             Method (_DSM, 4, Serialized)

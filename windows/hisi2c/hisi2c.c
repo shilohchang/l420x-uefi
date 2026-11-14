@@ -7,7 +7,9 @@
  * What this driver deliberately does NOT do:
  *   - it does not touch clocks, resets or pin functions (the UEFI hand-off stage leaves the
  *     bus clocks on and the pins in their I2C function);
- *   - it does not reprogram bus timing (the firmware's SCL counts are kept).
+ *   - standard-mode bus timing is left as found; the fast-mode SCL counters are set to
+ *     the values the firmware uses on the keyboard bus, and each transfer selects standard
+ *     or fast mode from the speed in the device's ACPI I2cSerialBus resource.
  *
  * Transfers are interrupt driven. A 20 ms timer runs alongside every transfer as a safety
  * net: if the interrupt line turns out to be wired differently the transfer still finishes
@@ -28,6 +30,8 @@
 #define R_SLV_ADDR     0x04
 #define R_CMD_TXDATA   0x08
 #define R_RXDATA       0x0C
+#define R_FS_SCL_HCNT  0x18
+#define R_FS_SCL_LCNT  0x1C
 #define R_FIFO_CTRL    0x28
 #define R_FIFO_STATE   0x2C
 #define R_INT_MSTAT    0x44
@@ -48,6 +52,16 @@
 #define INT_TX_EMPTY   0x10
 #define INT_ALL        0x1F
 #define FIFO_CTRL_INIT 0xF3C           /* value used by the vendor Linux driver */
+
+    /* Fast-mode SCL counters. These are the values the firmware itself programs on the
+       keyboard bus (same 112 MHz controller clock, about 400 kHz). The touchpad bus is never
+       used by the firmware and still has reset defaults; the touchpad returns stale data
+       at the default ~116 kHz and correct data with these (KirinI2cXfer5). */
+#define FS_SCL_HCNT_VALUE 0x50
+#define FS_SCL_LCNT_VALUE 0xC0
+#define FRAME_SPEED_MASK  0x3
+#define FRAME_SPEED_FAST  0x1
+#define FRAME_ADDR_10BIT  0x4
 
 #define MAX_SEG        16
 #define RX_WINDOW      48              /* read commands in flight; RX FIFO holds 64 */
@@ -97,6 +111,7 @@ typedef struct _DEV {
     /* counters for the registry */
     ULONG        StReq, StOk, StErr, StTimeout, StIsr, StTimerWork;
     ULONG        StLastErr, StLastTstate, StLastMstat, StLastAddr, StD0Tstate, StD0Frame;
+    ULONG        StFixups, StLastFrame;
     ULONG        TraceCount;
     TRACE_ENTRY  Trace[TRACE_MAX];
 } DEV;
@@ -104,6 +119,7 @@ WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(DEV, GetDev)
 
 typedef struct _TGT {
     USHORT Address;
+    ULONG  Speed;                       /* Hz, from the ACPI I2cSerialBus resource */
 } TGT;
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(TGT, GetTgt)
 
@@ -177,9 +193,54 @@ static VOID Pump(DEV* d)
     }
 }
 
+/*
+ * Device quirk: Hantick 0911:5288 touchpad (I2C address 0x2C on this machine).
+ *
+ * Measured on the L420X from the UEFI shell (KirinI2cXfer3/4): once the touchpad has
+ * received ANY HID command (even SET_POWER ON), it returns its 501-byte report descriptor
+ * with bytes 2..29 replaced by bytes 2..29 of its HID descriptor. Everything else stays
+ * correct (byte sums differ by exactly that amount), and nothing short of a power cycle
+ * restores it. Windows' hidi2c always sends SET_POWER and RESET before reading the report
+ * descriptor, so it always receives the damaged copy and refuses to start the device.
+ * (Linux carries workarounds for this same touchpad: a no-irq-after-reset quirk and, on
+ * some laptops, a hard-coded report descriptor.)
+ *
+ * The fix-up below only acts on the exact signature of that damage - a read of register
+ * 0x0021 from address 0x2C whose bytes 2..7 are "00 01 F5 01 21 00" (HID descriptor
+ * fields) - and puts back the 28 bytes read from the device before any command was sent.
+ */
+static const UCHAR TpRdescGood2to29[28] = {
+    0x09, 0x02, 0xA1, 0x01, 0x85, 0x01, 0x09, 0x01, 0xA1, 0x00, 0x05, 0x09, 0x19, 0x01,
+    0x29, 0x02, 0x25, 0x01, 0x75, 0x01, 0x95, 0x02, 0x81, 0x02, 0x95, 0x06, 0x81, 0x01
+};
+static const UCHAR TpRdescBad2to7[6] = { 0x00, 0x01, 0xF5, 0x01, 0x21, 0x00 };
+
+static VOID TouchpadDescriptorFixup(DEV* d)
+{
+    SEG* w, * r;
+
+    if (d->StLastAddr != 0x2C || d->NSeg != 2) {
+        return;
+    }
+    w = &d->Seg[0];
+    r = &d->Seg[1];
+    if (w->Read || w->Len != 2 || w->Va[0] != 0x21 || w->Va[1] != 0x00 ||
+        !r->Read || r->Len < 30 || r->Va[0] != 0x05 || r->Va[1] != 0x01) {
+        return;
+    }
+    if (RtlCompareMemory(r->Va + 2, TpRdescBad2to7, sizeof(TpRdescBad2to7)) != sizeof(TpRdescBad2to7)) {
+        return;
+    }
+    RtlCopyMemory(r->Va + 2, TpRdescGood2to29, sizeof(TpRdescGood2to29));
+    d->StFixups++;
+}
+
 static VOID Finish(DEV* d, NTSTATUS status)
 {
     Wr(d, R_INT_MASK, 0);
+    if (NT_SUCCESS(status)) {
+        TouchpadDescriptorFixup(d);
+    }
     if (d->TraceCount < TRACE_MAX) {
         TRACE_ENTRY* t = &d->Trace[d->TraceCount++];
         ULONG       i, k, w = 0, r = 0;
@@ -349,6 +410,8 @@ static VOID WriteStats(DEV* d)
     PutUlong(key, L"LastTransState", d->StLastTstate);
     PutUlong(key, L"LastIntStatus", d->StLastMstat);
     PutUlong(key, L"LastAddress", d->StLastAddr);
+    PutUlong(key, L"DescriptorFixups", d->StFixups);
+    PutUlong(key, L"LastFrameCtrl", d->StLastFrame);
     {
         UNICODE_STRING u;
         RtlInitUnicodeString(&u, L"Trace");
@@ -377,12 +440,15 @@ static NTSTATUS EvtTargetConnect(WDFDEVICE Controller, SPBTARGET Target)
     if (rh == NULL || rh->PropertiesLength < 18) {
         return STATUS_INVALID_PARAMETER;
     }
-    /* ACPI I2cSerialBus descriptor: [0]=0x8E, [5]=bus type (1 = I2C), [16..17]=slave address */
+    /* ACPI I2cSerialBus descriptor: [0]=0x8E, [5]=bus type (1 = I2C),
+       [12..15]=connection speed, [16..17]=slave address */
     desc = rh->ConnectionProperties;
     if (desc[0] != 0x8E || desc[5] != 1) {
         return STATUS_INVALID_PARAMETER;
     }
     GetTgt(Target)->Address = (USHORT)(desc[16] | (desc[17] << 8));
+    GetTgt(Target)->Speed = (ULONG)desc[12] | ((ULONG)desc[13] << 8) |
+        ((ULONG)desc[14] << 16) | ((ULONG)desc[15] << 24);
     return STATUS_SUCCESS;
 }
 
@@ -461,7 +527,15 @@ static VOID StartTransfer(WDFDEVICE Controller, SPBTARGET Target, SPBREQUEST Req
     Wr(d, R_INT_MASK, 0);
     ClearFifos(d);
     Wr(d, R_INT_CLR, INT_ALL);
-    Wr(d, R_FRAME_CTRL, Rd(d, R_FRAME_CTRL) & ~4UL);           /* 7-bit addressing */
+    {
+        /* 7-bit addressing; standard mode up to 100 kHz, fast mode above */
+        ULONG frame = Rd(d, R_FRAME_CTRL) & ~(ULONG)(FRAME_SPEED_MASK | FRAME_ADDR_10BIT);
+        if (GetTgt(Target)->Speed > 100000) {
+            frame |= FRAME_SPEED_FAST;
+        }
+        Wr(d, R_FRAME_CTRL, frame);
+        d->StLastFrame = frame;
+    }
     Wr(d, R_SLV_ADDR, GetTgt(Target)->Address);
     Pump(d);                                                    /* first command starts the bus */
     Wr(d, R_INT_MASK, INT_CPLT | INT_ERR | INT_FIFO_ERR | INT_RX_FULL |
@@ -527,6 +601,8 @@ static NTSTATUS EvtD0Entry(WDFDEVICE Device, WDF_POWER_DEVICE_STATE Previous)
     Wr(d, R_INT_CLR, INT_ALL);
     Wr(d, R_FIFO_CTRL, FIFO_CTRL_INIT | 3);
     Wr(d, R_FIFO_CTRL, FIFO_CTRL_INIT);
+    Wr(d, R_FS_SCL_HCNT, FS_SCL_HCNT_VALUE);
+    Wr(d, R_FS_SCL_LCNT, FS_SCL_LCNT_VALUE);
     d->StD0Tstate = Rd(d, R_TRANS_STATE);
     d->StD0Frame = Rd(d, R_FRAME_CTRL);
     WriteStats(d);
